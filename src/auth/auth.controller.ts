@@ -20,38 +20,38 @@ import { User } from '../users/entities/user.entity';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
+  @Post('/register')
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
-  @Post('login')
+  @Post('/login')
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
 
-  @Post('refresh')
+  @Post('/refresh')
   @UseGuards(JwtRefreshGuard)
   @HttpCode(HttpStatus.OK)
   refresh(@CurrentUser() user: User) {
     return this.authService.refreshTokens(user);
   }
 
-  @Post('logout')
+  @Post('/logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   logout(@CurrentUser() user: User) {
     return this.authService.logout(user.id);
   }
 
-  @Post('forgot-password')
+  @Post('/forgot-password')
   @HttpCode(HttpStatus.OK)
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
   }
 
-  @Post('reset-password')
+  @Post('/reset-password')
   @HttpCode(HttpStatus.OK)
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
