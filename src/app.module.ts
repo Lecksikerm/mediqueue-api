@@ -16,6 +16,7 @@ import { JobsModule } from './jobs/jobs.module';
 import { AdminModule } from './admin/admin.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { MailModule } from './mail/mail.module';
+import { RedisModule } from './common/redis/redis.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { MailModule } from './mail/mail.module';
     AdminModule,
     AnalyticsModule,
     MailModule,
+    RedisModule,
   ],
 })
 export class AppModule {}
