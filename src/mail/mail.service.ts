@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import { appointmentReminderTemplate } from './templates/appointment-reminder.template';
 import { resetPasswordTemplate } from './templates/reset-password.template';
 
 @Injectable()
@@ -36,6 +37,33 @@ export class MailService {
       this.logger.log(`Password reset email sent to ${to}`);
     } catch (error) {
       this.logger.error(`Failed to send email to ${to}`, error);
+      throw error;
+    }
+  }
+
+  async sendAppointmentReminder(
+    to: string,
+    patientName: string,
+    doctorName: string,
+    date: string,
+    timeRange: string,
+  ): Promise<void> {
+    try {
+      await this.transporter.sendMail({
+        from: this.configService.get<string>('MAIL_FROM'),
+        to,
+        subject: 'MediQueue — Appointment Reminder',
+        html: appointmentReminderTemplate(
+          patientName,
+          doctorName,
+          date,
+          timeRange,
+        ),
+      });
+
+      this.logger.log(`Appointment reminder sent to ${to}`);
+    } catch (error) {
+      this.logger.error(`Failed to send appointment reminder to ${to}`, error);
       throw error;
     }
   }

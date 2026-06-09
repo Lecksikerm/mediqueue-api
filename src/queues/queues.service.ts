@@ -15,6 +15,7 @@ import { JoinQueueDto } from './dto/join-queue.dto';
 import { FindQueueDto } from './dto/find-queue.dto';
 import { paginate } from '../common/pagination/pagination.util';
 import { AppointmentStatus, QueueStatus } from '../common/enums';
+import { JobsService } from '../jobs/jobs.service';
 
 const AVG_CONSULTATION_MINUTES = 15;
 
@@ -29,7 +30,8 @@ export class QueuesService {
     private readonly doctorRepository: Repository<Doctor>,
     private readonly redisService: RedisService,
     private readonly websocketGateway: WebsocketGateway,
-  ) {}
+    private readonly jobsService: JobsService,
+  ) { }
 
   // ─── Join Queue ──────────────────────────────────────────────
   async joinQueue(patientId: string, dto: JoinQueueDto) {
@@ -160,10 +162,10 @@ export class QueuesService {
             livePosition === 1 ? 'Next up' : `~${estimatedWait} minutes`,
           patient: entry.patient
             ? {
-                id: entry.patient.id,
-                name: entry.patient.name,
-                email: entry.patient.email,
-              }
+              id: entry.patient.id,
+              name: entry.patient.name,
+              email: entry.patient.email,
+            }
             : null,
         };
       }),
@@ -250,6 +252,8 @@ export class QueuesService {
     // Emit update
     await this.emitQueueUpdate(queueEntry.doctorId);
 
+    await this.jobsService.triggerQueueRecalculation(queueEntry.doctorId);
+    
     return { message: 'Left queue successfully' };
   }
 
