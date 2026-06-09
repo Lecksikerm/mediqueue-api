@@ -5,9 +5,13 @@ import { AppointmentsController } from './appointments.controller';
 import { Appointment } from './entities/appointment.entity';
 import { AvailabilitySlot } from '../availability/entities/availability-slot.entity';
 import { Doctor } from '../doctors/entities/doctor.entity';
+import { JobsModule } from '../jobs/jobs.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Appointment, AvailabilitySlot, Doctor])],
+  imports: [
+    TypeOrmModule.forFeature([Appointment, AvailabilitySlot, Doctor]),
+    JobsModule,
+  ],
   controllers: [AppointmentsController],
   providers: [AppointmentsService],
   exports: [AppointmentsService],

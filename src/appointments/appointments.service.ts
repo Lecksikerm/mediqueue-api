@@ -15,6 +15,7 @@ import { FindAppointmentsDto } from './dto/find-appointments.dto';
 import { paginate } from '../common/pagination/pagination.util';
 import { AppointmentStatus, SlotStatus } from '../common/enums';
 import { formatTo12Hour } from '../common/utils/time.util';
+import { JobsService } from '../jobs/jobs.service';
 
 @Injectable()
 export class AppointmentsService {
@@ -25,7 +26,8 @@ export class AppointmentsService {
     private readonly slotRepository: Repository<AvailabilitySlot>,
     @InjectRepository(Doctor)
     private readonly doctorRepository: Repository<Doctor>,
-  ) {}
+    private readonly jobsService: JobsService,
+  ) { }
 
   // ─── Format appointment helper ───────────────────────────────
   private formatAppointment(appointment: Appointment) {
@@ -33,30 +35,30 @@ export class AppointmentsService {
       ...appointment,
       slot: appointment.slot
         ? {
-            ...appointment.slot,
-            startTimeFormatted: formatTo12Hour(appointment.slot.startTime),
-            endTimeFormatted: formatTo12Hour(appointment.slot.endTime),
-            timeRange: `${formatTo12Hour(appointment.slot.startTime)} - ${formatTo12Hour(appointment.slot.endTime)}`,
-          }
+          ...appointment.slot,
+          startTimeFormatted: formatTo12Hour(appointment.slot.startTime),
+          endTimeFormatted: formatTo12Hour(appointment.slot.endTime),
+          timeRange: `${formatTo12Hour(appointment.slot.startTime)} - ${formatTo12Hour(appointment.slot.endTime)}`,
+        }
         : null,
       doctor: appointment.doctor
         ? {
-            ...appointment.doctor,
-            user: appointment.doctor.user
-              ? {
-                  id: appointment.doctor.user.id,
-                  name: appointment.doctor.user.name,
-                  email: appointment.doctor.user.email,
-                }
-              : null,
-          }
+          ...appointment.doctor,
+          user: appointment.doctor.user
+            ? {
+              id: appointment.doctor.user.id,
+              name: appointment.doctor.user.name,
+              email: appointment.doctor.user.email,
+            }
+            : null,
+        }
         : null,
       patient: appointment.patient
         ? {
-            id: appointment.patient.id,
-            name: appointment.patient.name,
-            email: appointment.patient.email,
-          }
+          id: appointment.patient.id,
+          name: appointment.patient.name,
+          email: appointment.patient.email,
+        }
         : null,
     };
   }
@@ -117,6 +119,16 @@ export class AppointmentsService {
       where: { id: appointment.id },
       relations: { slot: true, doctor: { user: true }, patient: true },
     });
+
+    // Schedule reminder 30 mins before appointment
+    const appointmentDateTime = new Date(
+      `${full.slot.date}T${full.slot.startTime}:00`,
+    );
+    await this.jobsService.scheduleAppointmentReminder(
+      appointment.id,
+      full.slot.date,
+      full.slot.startTime,
+    );
 
     return {
       message: 'Appointment booked successfully',
