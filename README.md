@@ -1,98 +1,448 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# MediQueue API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A production-grade **Teleconsultation Booking & Real-Time Queue Management** backend API built for the Nigerian healthcare market.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Patients can book appointments, join virtual queues, and track their position in real time. Doctors manage their schedules and consultation flow. Admins monitor the entire system with analytics and reports.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Table of Contents
 
-## Project setup
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Database Migrations](#database-migrations)
+- [API Reference](#api-reference)
+- [WebSocket Events](#websocket-events)
+- [Background Jobs](#background-jobs)
+- [Project Structure](#project-structure)
+- [Roles & Permissions](#roles--permissions)
+
+---
+
+## Features
+
+### Patient
+- Register and log in securely
+- Browse available doctors filtered by specialization and fee
+- Book, cancel, and reschedule appointments
+- Join the real-time consultation queue
+- Track live queue position with estimated wait time
+- Receive appointment reminder emails 30 minutes before consultation
+- View personal appointment analytics
+
+### Doctor
+- Create and manage a professional profile
+- Set availability slots (single or recurring)
+- Block or delete slots
+- View and manage patient appointment queue
+- Start, complete, or mark patients as no-show
+- View performance analytics
+
+### Admin
+- System-wide overview dashboard
+- User and doctor management (activate, deactivate, suspend)
+- Appointment and revenue analytics
+- Live queue monitoring across all doctors
+- Trigger background jobs manually
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | NestJS (TypeScript) |
+| Database | PostgreSQL + TypeORM |
+| Cache & Queue State | Redis (ioredis) |
+| Real-Time | Socket.IO WebSockets |
+| Background Jobs | BullMQ + @nestjs/schedule |
+| Authentication | JWT (Access + Refresh Tokens) |
+| Password Hashing | bcrypt |
+| Email | Nodemailer (Gmail SMTP) |
+| Validation | class-validator + class-transformer |
+| Rate Limiting | @nestjs/throttler |
+
+---
+
+## Architecture
+
+┌─────────────────────────────────────────────────────────┐
+│                    NestJS API Server                     │
+│                                                         │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
+│  │   Auth   │  │  Users   │  │ Doctors  │             │
+│  └──────────┘  └──────────┘  └──────────┘             │
+│  ┌────────────────┐  ┌──────────────────┐              │
+│  │ Availability   │  │  Appointments    │              │
+│  └────────────────┘  └──────────────────┘              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
+│  │  Queues  │  │  Admin   │  │Analytics │             │
+│  └──────────┘  └──────────┘  └──────────┘             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
+│  │   Jobs   │  │   Mail   │  │WebSocket │             │
+│  └──────────┘  └──────────┘  └──────────┘             │
+└─────────────────────────────────────────────────────────┘
+│                │                │
+▼                ▼                ▼
+┌──────────┐    ┌──────────┐    ┌──────────┐
+│PostgreSQL│    │  Redis   │    │ BullMQ   │
+└──────────┘    └──────────┘    └──────────┘
+
+---
+
+## Prerequisites
+
+- Node.js v18+
+- PostgreSQL 14+
+- Redis 6+
+- npm
+
+---
+
+## Getting Started
+
+### 1. Clone the repository
 
 ```bash
-$ npm install
+git clone https://github.com/your-username/mediqueue-api.git
+cd mediqueue-api
 ```
 
-## Compile and run the project
+### 2. Install dependencies
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Run tests
+### 3. Set up environment variables
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.example .env
 ```
 
-## Deployment
+Fill in all values in `.env` (see [Environment Variables](#environment-variables)).
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 4. Create the database
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+psql -U postgres -c "CREATE DATABASE mediqueue;"
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 5. Run migrations
 
-## Resources
+```bash
+npm run migration:run
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+### 6. Start the server
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+# Development
+npm run start:dev
 
-## Support
+# Production
+npm run build
+npm run start:prod
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+The API will be available at `http://localhost:3000/api/v1`
 
-## Stay in touch
+---
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+# App
+PORT=3000
+NODE_ENV=development
+
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=yourpassword
+DB_NAME=mediqueue
+
+# JWT
+JWT_SECRET=your_super_secret_jwt_key_here
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_SECRET=your_refresh_secret_here
+JWT_REFRESH_EXPIRES_IN=7d
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Email (Gmail SMTP)
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USER=your@gmail.com
+MAIL_PASS=your_16char_app_password
+MAIL_FROM="MediQueue <noreply@mediqueue.com>"
+```
+
+> For Gmail, generate an **App Password** under Google Account → Security → App Passwords.
+
+---
+
+## Database Migrations
+
+```bash
+# Generate a new migration after changing entities
+npm run migration:generate src/database/migrations/MigrationName
+
+# Apply pending migrations
+npm run migration:run
+
+# Revert last migration
+npm run migration:revert
+
+# Show migration status
+npm run migration:show
+```
+
+---
+
+## API Reference
+
+Base URL: `http://localhost:3000/api/v1`
+
+### Authentication
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/auth/register` | Public | Register a new user |
+| POST | `/auth/login` | Public | Login and get tokens |
+| POST | `/auth/refresh` | Authenticated | Refresh access token |
+| POST | `/auth/logout` | Authenticated | Logout and invalidate token |
+| POST | `/auth/forgot-password` | Public | Request password reset email |
+| POST | `/auth/reset-password` | Public | Reset password with token |
+
+### Users
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/users/me` | Authenticated | Get my profile |
+| PATCH | `/users/me` | Authenticated | Update my profile |
+| PATCH | `/users/me/change-password` | Authenticated | Change password |
+| GET | `/users/all` | Admin | Get all users (paginated) |
+| GET | `/users/inactive` | Admin | Get inactive users |
+| GET | `/users/:id` | Admin | Get single user |
+| PATCH | `/users/:id/deactivate` | Admin | Deactivate a user |
+| PATCH | `/users/:id/reactivate` | Admin | Reactivate a user |
+
+### Doctors
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/doctors` | Public | List active doctors (paginated, filterable) |
+| GET | `/doctors/single/:id` | Public | Get a single doctor |
+| POST | `/doctors` | Doctor | Create doctor profile |
+| GET | `/doctors/me` | Doctor | Get my doctor profile |
+| PATCH | `/doctors/me` | Doctor | Update my doctor profile |
+| PATCH | `/doctors/me/status` | Doctor | Update availability status |
+| GET | `/doctors/admin/all` | Admin | Get all doctors including inactive |
+| DELETE | `/doctors/admin/:id` | Admin | Delete a doctor profile |
+
+#### Doctor query params
+
+### Availability
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/availability/doctor/:doctorId` | Public | Get available slots for a doctor |
+| POST | `/availability` | Doctor | Create a slot (single or recurring) |
+| GET | `/availability/me` | Doctor | Get my slots |
+| PATCH | `/availability/me/block/:slotId` | Doctor | Block a slot |
+| DELETE | `/availability/me/:slotId` | Doctor | Delete a slot |
+| GET | `/availability/admin/:doctorId` | Admin | Get all slots for a doctor |
+
+#### Create slot examples
+
+Single slot:
+```json
+{
+  "date": "2026-06-15",
+  "startTime": "09:00",
+  "endTime": "09:30"
+}
+```
+
+Recurring slot:
+```json
+{
+  "date": "2026-06-09",
+  "startTime": "10:00",
+  "endTime": "10:30",
+  "isRecurring": true,
+  "recurrenceDays": ["MON", "WED", "FRI"]
+}
+```
+
+### Appointments
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/appointments/book` | Patient | Book an appointment |
+| GET | `/appointments/my` | Patient | Get my appointments |
+| PATCH | `/appointments/my/:id/cancel` | Patient | Cancel my appointment |
+| PATCH | `/appointments/my/:id/reschedule` | Patient | Reschedule my appointment |
+| GET | `/appointments/doctor` | Doctor | Get doctor appointments |
+| PATCH | `/appointments/doctor/:id/start` | Doctor | Start consultation |
+| PATCH | `/appointments/doctor/:id/complete` | Doctor | Complete consultation |
+| PATCH | `/appointments/doctor/:id/no-show` | Doctor | Mark patient as no-show |
+| GET | `/appointments/:id` | Patient/Doctor | Get single appointment |
+| GET | `/appointments/admin/all` | Admin | Get all appointments |
+
+#### Appointment status flow
+
+### Queue
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/queues/join` | Patient | Join the consultation queue |
+| GET | `/queues/my-position/:appointmentId` | Patient | Get my queue position |
+| DELETE | `/queues/leave/:appointmentId` | Patient | Leave the queue |
+| GET | `/queues/doctor` | Doctor | View doctor's queue |
+| PATCH | `/queues/doctor/advance` | Doctor | Call next patient |
+| GET | `/queues/admin/stats/:doctorId` | Admin | Get queue stats for a doctor |
+
+### Admin
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/admin/overview` | Admin | System-wide overview stats |
+| GET | `/admin/users/growth` | Admin | User registration growth |
+| GET | `/admin/appointments/stats` | Admin | Appointment stats over time |
+| GET | `/admin/doctors/performance` | Admin | Doctor performance report |
+| GET | `/admin/revenue` | Admin | Revenue report |
+| GET | `/admin/queues/live` | Admin | Live queue overview |
+| PATCH | `/admin/doctors/:id/suspend` | Admin | Suspend a doctor |
+| PATCH | `/admin/doctors/:id/unsuspend` | Admin | Unsuspend a doctor |
+
+### Analytics
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/analytics/doctor` | Doctor | Doctor's own analytics |
+| GET | `/analytics/patient` | Patient | Patient's own analytics |
+
+#### Analytics query params
+
+### Jobs (Admin only)
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/jobs/trigger-daily-slots` | Admin | Manually trigger daily slot generation |
+
+---
+
+## WebSocket Events
+
+**Namespace:** `/queue`
+
+**Connection:**
+```javascript
+const socket = io('http://localhost:3000/queue');
+```
+
+### Client → Server
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `joinQueueRoom` | `{ doctorId }` | Subscribe to a doctor's queue updates |
+| `leaveQueueRoom` | `{ doctorId }` | Unsubscribe from a doctor's queue |
+
+### Server → Client
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `queueUpdated` | `{ doctorId, queueLength, queue[] }` | Fired when queue changes |
+| `positionChanged` | `{ position, estimatedWait }` | Patient position updated |
+| `consultationStarted` | `{ patientId, message }` | Doctor called next patient |
+
+### Example
+```javascript
+const socket = io('http://localhost:3000/queue');
+
+socket.on('connect', () => {
+  socket.emit('joinQueueRoom', { doctorId: 'your-doctor-id' });
+});
+
+socket.on('queueUpdated', (data) => {
+  console.log('Queue updated:', data);
+});
+
+socket.on('consultationStarted', (data) => {
+  console.log('Your turn:', data);
+});
+```
+
+---
+
+## Background Jobs
+
+| Job | Queue | Trigger | Description |
+|-----|-------|---------|-------------|
+| Appointment Reminder | `appointment-reminders` | On booking | Sends email 30 mins before appointment |
+| Queue Recalculation | `queue-recalculation` | On leave/cancel | Recalculates positions for remaining patients |
+| Daily Slot Generation | `daily-slots` | Nightly cron (midnight) | Generates slots for recurring schedules |
+
+---
+
+## Project Structure
+
+src/
+├── admin/                  # Admin dashboard and management
+├── analytics/              # Doctor and patient analytics
+├── appointments/           # Appointment booking and management
+├── auth/                   # JWT auth, strategies, guards, decorators
+├── availability/           # Doctor slot scheduling
+├── common/
+│   ├── database/           # TypeORM config and data source
+│   ├── enums/              # Shared enums (roles, statuses)
+│   ├── pagination/         # Reusable pagination utility
+│   ├── redis/              # Redis service and module
+│   └── utils/              # Time formatting utilities
+├── database/
+│   └── migrations/         # TypeORM migration files
+├── doctors/                # Doctor profile management
+├── jobs/
+│   └── processors/         # BullMQ job processors
+├── mail/
+│   └── templates/          # Email HTML templates
+├── notifications/          # Notification module
+├── queues/                 # Real-time queue management
+├── users/                  # User profile management
+├── websocket/              # Socket.IO gateway
+├── app.module.ts
+└── main.ts
+
+---
+
+## Roles & Permissions
+
+| Feature | Patient | Doctor | Admin |
+|---------|---------|--------|-------|
+| Register / Login | ✅ | ✅ | ✅ |
+| View doctors | ✅ | ✅ | ✅ |
+| Book appointment | ✅ | ❌ | ❌ |
+| Join queue | ✅ | ❌ | ❌ |
+| Manage availability | ❌ | ✅ | ❌ |
+| Start/complete consultation | ❌ | ✅ | ❌ |
+| View all users | ❌ | ❌ | ✅ |
+| System analytics | ❌ | ❌ | ✅ |
+| Suspend doctors | ❌ | ❌ | ✅ |
+| Trigger jobs | ❌ | ❌ | ✅ |
+
+---
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+MIT
