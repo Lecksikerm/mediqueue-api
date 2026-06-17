@@ -31,3 +31,9 @@ export enum SlotStatus {
   BOOKED = 'booked',
   BLOCKED = 'blocked',
 }
+
+export enum VideoSessionStatus {
+  WAITING = 'waiting',
+  ACTIVE = 'active',
+  ENDED = 'ended',
+}
