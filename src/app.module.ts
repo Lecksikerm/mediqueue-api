@@ -19,6 +19,7 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { JobsModule } from './jobs/jobs.module';
 import { AdminModule } from './admin/admin.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { VideoModule } from './video/video.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     NotificationsModule,
     AdminModule,
     AnalyticsModule,
+    VideoModule,
   ],
 })
 export class AppModule {}
