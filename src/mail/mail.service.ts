@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { appointmentReminderTemplate } from './templates/appointment-reminder.template';
 import { resetPasswordTemplate } from './templates/reset-password.template';
+import { welcomeTemplate } from './templates/welcome.template';
+
 
 @Injectable()
 export class MailService {
@@ -19,6 +21,22 @@ export class MailService {
         pass: this.configService.get<string>('MAIL_PASS'),
       },
     });
+  }
+
+  async sendWelcomeEmail(to: string, name: string, role: string): Promise<void> {
+    try {
+      await this.transporter.sendMail({
+        from: this.configService.get<string>('MAIL_FROM'),
+        to,
+        subject: 'Welcome to MediQueue 🎉',
+        html: welcomeTemplate(name, role),
+      });
+
+      this.logger.log(`Welcome email sent to ${to}`);
+    } catch (error) {
+      this.logger.error(`Failed to send welcome email to ${to}`, error);
+      
+    }
   }
 
   async sendPasswordResetEmail(
