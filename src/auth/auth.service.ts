@@ -26,7 +26,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
-  ) {}
+  ) { }
 
   // ─── Register ───────────────────────────────────────────────
   async register(dto: RegisterDto) {
@@ -51,6 +51,8 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user);
     await this.saveRefreshToken(user.id, tokens.refreshToken);
+
+    this.mailService.sendWelcomeEmail(user.email, user.name, user.role);
 
     return {
       message: 'Registration successful',
