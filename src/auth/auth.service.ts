@@ -4,6 +4,8 @@ import {
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -16,6 +18,7 @@ import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { JobsService } from '../jobs/jobs.service';
 import { MailService } from '../mail/mail.service';
 
 @Injectable()
@@ -26,6 +29,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
+    @Inject(forwardRef(() => JobsService))
+    private readonly jobsService: JobsService,
   ) { }
 
   // ─── Register ───────────────────────────────────────────────
@@ -52,7 +57,12 @@ export class AuthService {
     const tokens = await this.generateTokens(user);
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
-    this.mailService.sendWelcomeEmail(user.email, user.name, user.role);
+    // Queue welcome email via BullMQ — retries automatically on failure
+    await this.jobsService.scheduleWelcomeEmail(
+      user.email,
+      user.name,
+      user.role,
+    );
 
     return {
       message: 'Registration successful',
@@ -127,7 +137,7 @@ export class AuthService {
       },
       {
         secret: this.configService.get<string>('JWT_SECRET'),
-        expiresIn: '15m',
+        expiresIn: '1d',
       },
     );
 
@@ -139,8 +149,6 @@ export class AuthService {
 
     return {
       message: 'If that email exists, a reset link has been sent',
-      // Uncomment for testing only:
-      // resetToken,
     };
   }
 
@@ -180,7 +188,6 @@ export class AuthService {
     };
   }
 
-  // ─── Helpers ────────────────────────────────────────────────
   private async generateTokens(user: User) {
     const payload: JwtPayload = {
       sub: user.id,
