@@ -10,22 +10,26 @@ export class JobsService {
   constructor(
     @InjectQueue('appointment-reminders')
     private readonly reminderQueue: Queue,
+
     @InjectQueue('queue-recalculation')
     private readonly recalcQueue: Queue,
+
     @InjectQueue('daily-slots')
     private readonly dailySlotsQueue: Queue,
+
+    @InjectQueue('welcome-emails')
+    private readonly welcomeEmailQueue: Queue,
   ) { }
 
-  // ─── Schedule reminder 30 mins before appointment ────────────
   async scheduleAppointmentReminder(
     appointmentId: string,
     slotDate: string,
     slotStartTime: string,
-  ) {
-    // TypeORM returns time as "HH:MM:SS" — handle both "HH:MM" and "HH:MM:SS"
-    const timeStr = slotStartTime.length === 5
-      ? `${slotStartTime}:00`
-      : slotStartTime;
+  ): Promise<void> {
+    const timeStr =
+      slotStartTime.length === 5
+        ? `${slotStartTime}:00`
+        : slotStartTime;
 
     const appointmentDateTime = new Date(`${slotDate}T${timeStr}`);
 
@@ -51,39 +55,100 @@ export class JobsService {
     await this.reminderQueue.add(
       'send-reminder',
       { appointmentId },
-      { delay, attempts: 3, backoff: { type: 'exponential', delay: 5000 } },
+      {
+        delay,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+      },
     );
 
     this.logger.log(
-      `Reminder scheduled for appointment ${appointmentId} — fires in ${Math.round(delay / 60000)} minutes`,
+      `Reminder scheduled for appointment ${appointmentId}. Delay: ${Math.round(
+        delay / 60000,
+      )} minutes`,
     );
   }
 
-  // ─── Trigger queue recalculation ─────────────────────────────
-  async triggerQueueRecalculation(doctorId: string) {
+  async triggerQueueRecalculation(
+    doctorId: string,
+  ): Promise<void> {
     await this.recalcQueue.add(
       'recalculate',
       { doctorId },
-      { attempts: 3, backoff: { type: 'fixed', delay: 2000 } },
+      {
+        attempts: 3,
+        backoff: {
+          type: 'fixed',
+          delay: 2000,
+        },
+      },
     );
 
-    this.logger.log(`Queue recalculation triggered for doctor ${doctorId}`);
+    this.logger.log(
+      `Queue recalculation triggered for doctor ${doctorId}`,
+    );
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async runDailySlotGeneration() {
+  async runDailySlotGeneration(): Promise<void> {
     this.logger.log('Triggering nightly slot generation job');
 
     await this.dailySlotsQueue.add(
       'generate-slots',
       {},
-      { attempts: 2, backoff: { type: 'fixed', delay: 5000 } },
+      {
+        attempts: 2,
+        backoff: {
+          type: 'fixed',
+          delay: 5000,
+        },
+      },
     );
   }
 
-  async triggerDailySlotGenerationNow() {
+  async triggerDailySlotGenerationNow(): Promise<{
+    message: string;
+  }> {
     await this.dailySlotsQueue.add('generate-slots', {});
-    this.logger.log('Daily slot generation triggered manually');
-    return { message: 'Daily slot generation job queued' };
+
+    this.logger.log(
+      'Daily slot generation triggered manually',
+    );
+
+    return {
+      message: 'Daily slot generation job queued',
+    };
+  }
+
+  
+  async scheduleWelcomeEmail(
+    email: string,
+    name: string,
+    role: string,
+  ): Promise<void> {
+    await this.welcomeEmailQueue.add(
+      'send-welcome',
+      {
+        email,
+        name,
+        role,
+      },
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    );
+
+    this.logger.log(
+      `Welcome email job queued for ${email}`,
+    );
   }
 }
