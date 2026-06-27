@@ -37,3 +37,14 @@ export enum VideoSessionStatus {
   ACTIVE = 'active',
   ENDED = 'ended',
 }
+
+export enum PaymentStatus {
+  PENDING = 'pending',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  REFUNDED = 'refunded',
+}
+
+export enum PaymentCurrency {
+  NGN = 'NGN',
+}

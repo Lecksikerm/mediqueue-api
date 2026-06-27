@@ -63,6 +63,7 @@ async function bootstrap() {
     .addTag('Admin', 'System administration and reports')
     .addTag('Analytics', 'Performance and usage analytics')
     .addTag('Jobs', 'Background job management')
+    .addTag('Payments', 'Paystack payment initiation, verification and history')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

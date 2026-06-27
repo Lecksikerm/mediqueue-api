@@ -7,6 +7,7 @@ import { Appointment } from '../../appointments/entities/appointment.entity';
 import { AvailabilitySlot } from '../../availability/entities/availability-slot.entity';
 import { ConsultationQueue } from '../../queues/entities/consultation-queue.entity';
 import { VideoSession } from '../../video/entities/video-session.entity';
+import { Payment } from '../../payments/entities/payment.entity';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  entities: [User, Doctor, AvailabilitySlot, Appointment, ConsultationQueue, VideoSession],
+  entities: [User, Doctor, AvailabilitySlot, Appointment, ConsultationQueue, VideoSession, Payment],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   synchronize: false,
   logging: true,
