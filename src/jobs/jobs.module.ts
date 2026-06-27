@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JobsService } from './jobs.service';
@@ -41,4 +41,4 @@ import { MailModule } from '../mail/mail.module';
   ],
   exports: [JobsService],
 })
-export class JobsModule { }
+export class JobsModule {}
