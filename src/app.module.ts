@@ -37,12 +37,20 @@ import { PaymentsModule } from './payments/payments.module';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get<string>('REDIS_HOST'),
-          port: configService.get<number>('REDIS_PORT'),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const redisPassword = configService.get<string>('REDIS_PASSWORD');
+        const isProduction =
+          configService.get<string>('NODE_ENV') === 'production';
+    
+        return {
+          connection: {
+            host: configService.get<string>('REDIS_HOST'),
+            port: configService.get<number>('REDIS_PORT'),
+            ...(redisPassword ? { password: redisPassword } : {}),
+            ...(isProduction ? { tls: {} } : {}),
+          },
+        };
+      },
     }),
     ThrottlerModule.forRoot([
       {

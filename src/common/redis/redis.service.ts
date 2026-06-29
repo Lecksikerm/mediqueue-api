@@ -15,9 +15,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
+    const redisPassword = this.configService.get<string>('REDIS_PASSWORD');
+    const isProduction =
+      this.configService.get<string>('NODE_ENV') === 'production';
+
     this.client = new Redis({
       host: this.configService.get<string>('REDIS_HOST'),
       port: this.configService.get<number>('REDIS_PORT'),
+      ...(redisPassword ? { password: redisPassword } : {}),
+      ...(isProduction ? { tls: {} } : {}),
     });
 
     this.client.on('connect', () => {
@@ -30,14 +36,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy() {
-    void this.client.quit();
+    this.client.quit();
   }
 
   getClient(): Redis {
     return this.client;
   }
 
-  // ─── Key-Value ───────────────────────────────────────────────
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
     if (ttlSeconds) {
       await this.client.set(key, value, 'EX', ttlSeconds);
@@ -54,23 +59,22 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.client.del(key);
   }
 
-  // ─── Queue Operations ────────────────────────────────────────
-  getQueueKey(doctorId: string): string {
+  async getQueueKey(doctorId: string): Promise<string> {
     return `queue:doctor:${doctorId}`;
   }
 
   async addToQueue(doctorId: string, patientId: string): Promise<number> {
-    const key = this.getQueueKey(doctorId);
+    const key = await this.getQueueKey(doctorId);
     return this.client.rpush(key, patientId);
   }
 
   async removeFromQueue(doctorId: string, patientId: string): Promise<void> {
-    const key = this.getQueueKey(doctorId);
+    const key = await this.getQueueKey(doctorId);
     await this.client.lrem(key, 0, patientId);
   }
 
   async getQueueList(doctorId: string): Promise<string[]> {
-    const key = this.getQueueKey(doctorId);
+    const key = await this.getQueueKey(doctorId);
     return this.client.lrange(key, 0, -1);
   }
 
@@ -81,16 +85,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getQueueLength(doctorId: string): Promise<number> {
-    const key = this.getQueueKey(doctorId);
+    const key = await this.getQueueKey(doctorId);
     return this.client.llen(key);
   }
 
   async clearQueue(doctorId: string): Promise<void> {
-    const key = this.getQueueKey(doctorId);
+    const key = await this.getQueueKey(doctorId);
     await this.client.del(key);
   }
 
-  // ─── Pub/Sub ─────────────────────────────────────────────────
   async publish(channel: string, message: string): Promise<void> {
     await this.client.publish(channel, message);
   }
