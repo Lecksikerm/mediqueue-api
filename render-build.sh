@@ -5,7 +5,7 @@ echo "── Installing dependencies ──"
 npm install
 
 echo "── Building project ──"
-npx nest build
+./node_modules/.bin/nest build
 
 echo "── Running migrations ──"
 npm run migration:run
