@@ -386,6 +386,51 @@ socket.on('consultationStarted', (data) => {
 
 ---
 
+## Live Demo
+
+| Resource | URL |
+|----------|-----|
+| **API Base URL** | https://mediqueue-api-84p0.onrender.com/api/v1 |
+| **Swagger Docs** | https://mediqueue-api-84p0.onrender.com/api/docs |
+| **Health Check** | https://mediqueue-api-84p0.onrender.com/api/v1/health |
+
+### How to explore the API
+
+1. Open the [Swagger Docs](https://mediqueue-api-84p0.onrender.com/api/docs)
+2. Call `POST /auth/register` to create an account
+3. Call `POST /auth/login` to get your `accessToken`
+4. Click **Authorize 🔒** at the top right of Swagger
+5. Paste: `Bearer <your_accessToken>`
+6. All protected endpoints are now unlocked
+
+> **Note:** The API is hosted on Render's free tier — the first request after inactivity may take 20-30 seconds to wake up.
+
+---
+
+## Deployment
+
+This API is deployed on **Render** with the following services:
+
+| Service | Provider | Details |
+|---------|----------|---------|
+| API Server | Render Web Service | Node.js 20, auto-deploy on push to `main` |
+| Database | Render PostgreSQL | Free tier, SSL enabled |
+| Cache / Queue | Upstash Redis | Free tier, TLS enabled |
+| Email | Gmail SMTP | Nodemailer via App Password |
+| Payments | Paystack | Test mode — use test cards |
+
+### Deployment flow
+
+Every push to `main` automatically:
+1. Installs dependencies
+2. Builds the NestJS project
+3. Runs TypeORM migrations
+4. Restarts the API server
+
+### Paystack test card
+
+To test payments on the live API:
+
 ## Background Jobs
 
 | Job | Queue | Trigger | Description |
