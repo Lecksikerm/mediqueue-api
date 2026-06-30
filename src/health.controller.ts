@@ -1,10 +1,20 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiExcludeEndpoint } from '@nestjs/swagger';
 
 @ApiTags('Health')
-@Controller('health')
+@Controller()
 export class HealthController {
   @Get()
+  @ApiExcludeEndpoint()
+  root() {
+    return {
+      message: 'Welcome to MediQueue API',
+      docs: '/api/docs',
+      health: '/api/v1/health',
+    };
+  }
+
+  @Get('health')
   @ApiOperation({ summary: 'Health check endpoint' })
   check() {
     return {
