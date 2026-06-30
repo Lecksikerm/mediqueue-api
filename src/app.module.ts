@@ -21,6 +21,7 @@ import { AdminModule } from './admin/admin.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { VideoModule } from './video/video.module';
 import { PaymentsModule } from './payments/payments.module';
+import { HealthController } from './health.controller';
 
 
 @Module({
@@ -76,5 +77,6 @@ import { PaymentsModule } from './payments/payments.module';
     VideoModule,
     PaymentsModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
