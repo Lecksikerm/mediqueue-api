@@ -23,7 +23,6 @@ import { VideoModule } from './video/video.module';
 import { PaymentsModule } from './payments/payments.module';
 import { HealthController } from './health.controller';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -42,13 +41,17 @@ import { HealthController } from './health.controller';
         const redisPassword = configService.get<string>('REDIS_PASSWORD');
         const isProduction =
           configService.get<string>('NODE_ENV') === 'production';
-    
+
         return {
           connection: {
             host: configService.get<string>('REDIS_HOST'),
             port: configService.get<number>('REDIS_PORT'),
             ...(redisPassword ? { password: redisPassword } : {}),
             ...(isProduction ? { tls: {} } : {}),
+          },
+          defaultJobOptions: {
+            removeOnComplete: true,
+            removeOnFail: false,
           },
         };
       },
