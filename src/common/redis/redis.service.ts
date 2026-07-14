@@ -16,14 +16,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     const redisPassword = this.configService.get<string>('REDIS_PASSWORD');
-    const isProduction =
-      this.configService.get<string>('NODE_ENV') === 'production';
 
     this.client = new Redis({
       host: this.configService.get<string>('REDIS_HOST') || 'localhost',
       port: this.configService.get<number>('REDIS_PORT') || 6379,
+      username: 'default',
       ...(redisPassword ? { password: redisPassword } : {}),
-      ...(isProduction ? { tls: { rejectUnauthorized: false } } : {}),
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => {
         if (times > 5) return null;
@@ -40,8 +38,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  onModuleDestroy() {
-    this.client.quit();
+  async onModuleDestroy() {
+    if (!this.client) return;
+    try {
+      await this.client.quit();
+    } catch (err) {
+      this.logger.error('Error quitting Redis client', err?.message ?? String(err));
+    }
   }
 
   getClient(): Redis {
@@ -64,41 +67,38 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.client.del(key);
   }
 
-  async getQueueKey(doctorId: string): Promise<string> {
+  getQueueKey(doctorId: string): string {
     return `queue:doctor:${doctorId}`;
   }
 
   async addToQueue(doctorId: string, patientId: string): Promise<number> {
-    const key = await this.getQueueKey(doctorId);
+    const key = this.getQueueKey(doctorId);
     return this.client.rpush(key, patientId);
   }
 
   async removeFromQueue(doctorId: string, patientId: string): Promise<void> {
-    const key = await this.getQueueKey(doctorId);
+    const key = this.getQueueKey(doctorId);
     await this.client.lrem(key, 0, patientId);
   }
 
   async getQueueList(doctorId: string): Promise<string[]> {
-    const key = await this.getQueueKey(doctorId);
+    const key = this.getQueueKey(doctorId);
     return this.client.lrange(key, 0, -1);
   }
 
-  async getQueuePosition(
-    doctorId: string,
-    patientId: string,
-  ): Promise<number> {
+  async getQueuePosition(doctorId: string, patientId: string): Promise<number> {
     const queue = await this.getQueueList(doctorId);
     const index = queue.indexOf(patientId);
     return index === -1 ? -1 : index + 1;
   }
 
   async getQueueLength(doctorId: string): Promise<number> {
-    const key = await this.getQueueKey(doctorId);
+    const key = this.getQueueKey(doctorId);
     return this.client.llen(key);
   }
 
   async clearQueue(doctorId: string): Promise<void> {
-    const key = await this.getQueueKey(doctorId);
+    const key = this.getQueueKey(doctorId);
     await this.client.del(key);
   }
 
