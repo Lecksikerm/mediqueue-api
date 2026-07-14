@@ -20,10 +20,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       this.configService.get<string>('NODE_ENV') === 'production';
 
     this.client = new Redis({
-      host: this.configService.get<string>('REDIS_HOST'),
-      port: this.configService.get<number>('REDIS_PORT'),
+      host: this.configService.get<string>('REDIS_HOST') || 'localhost',
+      port: this.configService.get<number>('REDIS_PORT') || 6379,
       ...(redisPassword ? { password: redisPassword } : {}),
-      ...(isProduction ? { tls: {} } : {}),
+      ...(isProduction ? { tls: { rejectUnauthorized: false } } : {}),
+      maxRetriesPerRequest: 3,
+      retryStrategy: (times) => {
+        if (times > 5) return null;
+        return Math.min(times * 500, 3000);
+      },
     });
 
     this.client.on('connect', () => {
@@ -31,7 +36,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.client.on('error', (err) => {
-      this.logger.error('Redis connection error', err);
+      this.logger.error('Redis connection error', err.message);
     });
   }
 
@@ -78,7 +83,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.client.lrange(key, 0, -1);
   }
 
-  async getQueuePosition(doctorId: string, patientId: string): Promise<number> {
+  async getQueuePosition(
+    doctorId: string,
+    patientId: string,
+  ): Promise<number> {
     const queue = await this.getQueueList(doctorId);
     const index = queue.indexOf(patientId);
     return index === -1 ? -1 : index + 1;

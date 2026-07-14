@@ -35,27 +35,27 @@ import { HealthController } from './health.controller';
       useFactory: getDatabaseConfig,
     }),
     BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const redisPassword = configService.get<string>('REDIS_PASSWORD');
-        const isProduction =
-          configService.get<string>('NODE_ENV') === 'production';
+  imports: [ConfigModule],
+  inject: [ConfigService],
+  useFactory: (configService: ConfigService) => {
+    const redisPassword = configService.get<string>('REDIS_PASSWORD');
+    const isProduction =
+      configService.get<string>('NODE_ENV') === 'production';
 
-        return {
-          connection: {
-            host: configService.get<string>('REDIS_HOST'),
-            port: configService.get<number>('REDIS_PORT'),
-            ...(redisPassword ? { password: redisPassword } : {}),
-            ...(isProduction ? { tls: {} } : {}),
-          },
-          defaultJobOptions: {
-            removeOnComplete: true,
-            removeOnFail: false,
-          },
-        };
+    return {
+      connection: {
+        host: configService.get<string>('REDIS_HOST') || 'localhost',
+        port: configService.get<number>('REDIS_PORT') || 6379,
+        ...(redisPassword ? { password: redisPassword } : {}),
+        ...(isProduction ? { tls: { rejectUnauthorized: false } } : {}),
       },
-    }),
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    };
+  },
+}),
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
